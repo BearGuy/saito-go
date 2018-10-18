@@ -2,8 +2,6 @@ package saito
 
 import (
 	"crypto/sha256"
-
-	"github.com/cbergoon/merkletree"
 )
 
 // this.size			 = 0;  // size in bytes
@@ -76,6 +74,6 @@ func (tx Transaction) CalculateHash() []byte {
 }
 
 // Equals checks equality between merkleRoot.content
-func (tx Transaction) Equals(other merkletree.Content) bool {
-	return tx.transaction.sig == other.(Transaction).transaction.sig
-}
+// func (tx Transaction) Equals(other merkletree.Content) bool {
+// 	return tx.transaction.sig == other.(Transaction).transaction.sig
+// }

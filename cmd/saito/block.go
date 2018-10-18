@@ -47,7 +47,3 @@ func NewBlock() Block {
 	block.unixtime = time.Now().Unix()
 	return block
 }
-
-func (b *Block) bundBlock() {
-
-}
