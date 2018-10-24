@@ -1,20 +1,24 @@
 package saito
 
+import (
+	"fmt"
+)
+
 // Index contains block metadata stored by the blockchain struct
 type Index struct {
-	hash []byte
+	hash [][]byte
 	// 	prevhash:    [],                 // hash of previous block
-	prevHash []byte
+	prevHash [][]byte
 	// 	block_id:    [],                 // block id
-	blockID int64
+	blockID []int64
 	// 	mintid:      [],                 // min tid
-	minTXID int64
+	minTXID []int64
 	// 	maxtid:      [],                 // max tid
-	maxTXID int64
+	maxTXID []int64
 	// 	ts:          [],                 // timestamps
-	timestamps int64
+	timestamps []int64
 	// 	lc:          [],                 // is longest chain (0 = no, 1 = yes)
-	longestChain bool
+	longestChain []bool
 }
 
 // Blockchain is the heart of saito
@@ -89,15 +93,16 @@ type Blockchain struct {
 	// 	feestep:     []                  // feestep per block
 	// };
 	//this.blocks         = [];
-	index        []Index
-	blocks       []Block
-	LCHashmap    []int64
-	longestChain int64
+	index         Index
+	blocks        []Block
+	block_hashmap [][]byte
+	LCHashmap     []int64
+	longestChain  int64
 
 	// 	burnfee:     [],                 // burnfee per block
-	burnfee float64
+	// burnfee float64
 	// 	feestep:     []                  // feestep per block
-	feestep float64
+	// feestep float64
 
 	//this.block_hashmap  = [];
 	// this.lc_hashmap     = []; 	     // hashmap index is the  block hash and contains
@@ -157,11 +162,22 @@ type Blockchain struct {
 	//this.previous_block_hash = "";
 }
 
-func (bchain *Blockchain) addBlock(blk Block) {
+func NewBlockchain() Blockchain {
+	bchain := Blockchain{}
+	bchain.index = Index{}
+	bchain.genesisPeriod = 12160
+	return bchain
+}
+
+func (bchain *Blockchain) AddBlock(blk Block) {
+	fmt.Println("---- Added Block To Blockchain! ----")
+	fmt.Println(blk)
+	// verify that it's a valid block before appending
+	blk.isValid = true
 	bchain.blocks = append(bchain.blocks, blk)
 }
 
-func (bchain *Blockchain) returnLastBlock() Block {
+func (bchain *Blockchain) ReturnLastBlock() Block {
 	if len(bchain.blocks) != 0 {
 		return bchain.blocks[len(bchain.blocks)-1]
 	}

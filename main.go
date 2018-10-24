@@ -1,8 +1,19 @@
 package main
 
-import "github.com/bearguy/saito-go/cmd/saito"
+import (
+	"time"
+
+	"github.com/bearguy/saito-go/cmd/saito"
+)
 
 func main() {
 	saito := saito.InitSaito()
-	saito.Mempool.Bundle()
+	for {
+		newblock := saito.Mempool.Bundle(saito.Blockchain.ReturnLastBlock())
+		saito.Blockchain.AddBlock(newblock)
+
+		saito.Mempool.BurnFee = 2
+		saito.Mempool.BundlingFeesNeeded = 2
+		saito.Mempool.Starttime = time.Now().Unix()
+	}
 }

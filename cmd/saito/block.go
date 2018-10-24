@@ -18,6 +18,7 @@ type Block struct {
 // NewBlock is a constructor for creaing new blocks
 func NewBlock() Block {
 	block := Block{}
+	block.id = 1
 	block.unixtime = time.Now().Unix()
 	block.transactions = nil
 	return block

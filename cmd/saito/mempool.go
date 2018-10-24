@@ -2,7 +2,6 @@ package saito
 
 import (
 	"fmt"
-	"os"
 	"time" // "github.com/bearguy/saito-go/cmd/crypto"
 )
 
@@ -26,12 +25,12 @@ func NewMempool() Mempool {
 	return mempool
 }
 
-func (m *Mempool) Bundle() {
+func (m *Mempool) Bundle(prevblock Block) Block {
 	for {
 		if m.BundlingFeesNeeded <= 0 {
 			fmt.Println("YOU CAN PRODUCE A BLOCK!")
-			m.produceBlock(&Block{})
-			os.Exit(3)
+			return m.produceBlock(&prevblock)
+			// os.Exit(3)
 		} else {
 			m.BundlingFeesNeeded = m.BurnFee - m.Heartbeat*float64(time.Now().Unix()-m.Starttime)
 			DisplayBurnFeeCountdown(m.BundlingFeesNeeded)
@@ -52,7 +51,9 @@ func DisplayBurnFeeCountdown(bundling_fees float64) {
 func (m *Mempool) produceBlock(lastBlock *Block) Block {
 	blk := NewBlock()
 	if lastBlock != nil {
+		blk.id = lastBlock.id + 1
 		blk.prevhash = lastBlock.merkle
+
 	}
 
 	blk.merkle = ReturnMerkleTreeRoot(blk.transactions)

@@ -37,7 +37,7 @@ type TxData struct {
 	id   uint64
 	from []Slip
 	to   []Slip
-	ts   string
+	ts   int64
 	sig  string
 	path []TxData
 	gt   int

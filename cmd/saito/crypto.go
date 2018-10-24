@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -214,6 +215,8 @@ func BuildMerkleTree(input []Transaction) *merkletree.MerkleTree {
 		for _, content := range input {
 			list = append(list, content)
 		}
+	} else {
+		list = append(list, Transaction{transaction: TxData{ts: time.Now().Unix()}})
 	}
 	// need to provide some content, even if empty string
 	t, _ := merkletree.NewTree(list)
