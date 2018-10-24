@@ -2,6 +2,8 @@ package saito
 
 import (
 	"crypto/sha256"
+
+	"github.com/cbergoon/merkletree"
 )
 
 // this.size			 = 0;  // size in bytes
@@ -19,7 +21,7 @@ import (
 
 // Transaction struct
 type Transaction struct {
-	transaction TData
+	transaction TxData
 	size        uint64
 	dmsg        string
 	cfee        string
@@ -31,13 +33,13 @@ type Transaction struct {
 }
 
 // TData struct for specific transaction data
-type TData struct {
+type TxData struct {
 	id   uint64
 	from []Slip
 	to   []Slip
 	ts   string
 	sig  string
-	path []TData
+	path []TxData
 	gt   int
 	ft   int
 	msg  string
@@ -63,17 +65,17 @@ func (tx *Transaction) AddTo(toAddress []byte, toAmount float64) {
 }
 
 // CalculateHash is needed for MerkleTree calculations
-func (tx Transaction) CalculateHash() []byte {
+func (tx Transaction) CalculateHash() ([]byte, error) {
 	h := sha256.New()
 	serializedTX := []byte(tx.transaction.sig)
 	if _, err := h.Write(serializedTX); err != nil {
-		return nil
+		return nil, err
 	}
 
-	return h.Sum(nil)
+	return h.Sum(nil), nil
 }
 
 // Equals checks equality between merkleRoot.content
-// func (tx Transaction) Equals(other merkletree.Content) bool {
-// 	return tx.transaction.sig == other.(Transaction).transaction.sig
-// }
+func (tx Transaction) Equals(other merkletree.Content) (bool, error) {
+	return tx.transaction.sig == other.(Transaction).transaction.sig, nil
+}

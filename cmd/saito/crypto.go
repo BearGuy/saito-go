@@ -1,4 +1,4 @@
-package crypt
+package saito
 
 import (
 	"crypto/sha256"
@@ -199,13 +199,14 @@ func VerifyMessage(messageHash []byte, pubKey *btcec.PublicKey, signature *btcec
 // }
 
 // MerkleContent interface used to prepare BuildMerkleTree for transaction data
-type MerkleContent interface {
-	CalculateHash() []byte
-	Equals(merkletree.Content) bool
-}
+// type MerkleContent interface {
+// 	CalculateHash() []byte
+// 	Equals(merkletree.Content) bool
+// }
 
 //BuildMerkleTree returns a merkletree object
-func BuildMerkleTree(input []merkletree.Content) *merkletree.MerkleTree {
+func BuildMerkleTree(input []Transaction) *merkletree.MerkleTree {
+	// Transaction instead?
 	//Create new Merkle Tree
 	var list []merkletree.Content
 
@@ -214,13 +215,15 @@ func BuildMerkleTree(input []merkletree.Content) *merkletree.MerkleTree {
 			list = append(list, content)
 		}
 	}
+	// need to provide some content, even if empty string
 	t, _ := merkletree.NewTree(list)
 
 	return t
 }
 
 // ReturnMerkleTreeRoot returns the root of the merkle tree
-func ReturnMerkleTreeRoot(input []merkletree.Content) []byte {
+func ReturnMerkleTreeRoot(input []Transaction) []byte {
+	// transaction instead?
 	return BuildMerkleTree(input).MerkleRoot()
 }
 

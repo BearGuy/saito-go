@@ -1,17 +1,16 @@
-package crypt_test
+package saito
 
 import (
 	"encoding/hex"
 	"fmt"
-	"testing"
+	"testing" // "github.com/bearguy/saito-go/cmd/crypto"
 
-	"github.com/bearguy/saito-go/cmd/crypt"
 	"github.com/btcsuite/btcd/btcec"
 )
 
 func TestToBase58(t *testing.T) {
 	hexString := "22a47fa09a223f2aa079edf85a7c2d4f87"
-	encodeToBase58String := crypt.ToBase58(hexString)
+	encodeToBase58String := ToBase58(hexString)
 	correctBase58String := "Kt7xi8ujBNVfdD7Pxs8X22A"
 	if encodeToBase58String != correctBase58String {
 		t.Errorf("ToBase58 was incorrect, got: %s, want: %s.", encodeToBase58String, correctBase58String)
@@ -20,7 +19,7 @@ func TestToBase58(t *testing.T) {
 
 func TestFromBase58(t *testing.T) {
 	base58String := "Kt7xi8ujBNVfdD7Pxs8X22A"
-	decodeFromBase58String := crypt.FromBase58(base58String)
+	decodeFromBase58String := FromBase58(base58String)
 	correctHexString := "22a47fa09a223f2aa079edf85a7c2d4f87"
 	if decodeFromBase58String != correctHexString {
 		t.Errorf("FromBase58 was incorrect, got: %s, want: %s.", decodeFromBase58String, correctHexString)
@@ -29,7 +28,7 @@ func TestFromBase58(t *testing.T) {
 
 func TestDoubleHashB(t *testing.T) {
 	message := "this is a test message"
-	messageHash := crypt.DoubleHashB([]byte(message))
+	messageHash := DoubleHashB([]byte(message))
 	correctMessageHash := "a949c222c34b9a59b35214d5a926c406f21b0be5b8311f8dcdbf09dd7b84c242"
 	if messageHash != correctMessageHash {
 		t.Errorf("DoubleHashB was incorrect, got: %s, want: %s.", messageHash, correctMessageHash)
@@ -43,7 +42,7 @@ func TestCompressPublicKey(t *testing.T) {
 
 		// "02a673638cb9587cb68ea08dbef685c" +
 		// "6f2d2a751a8b3c6f2a7e9a4999e6e4bfaf5"
-	compressedPubKey, err := crypt.CompressPubKey(hexString)
+	compressedPubKey, err := CompressPubKey(hexString)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -55,7 +54,7 @@ func TestCompressPublicKey(t *testing.T) {
 
 func TestUncompressPublicKey(t *testing.T) {
 	base58String := "02115c42e757b2efb7671c578530ec191a1359381e6a71127a9d37c486fd30dae5"
-	decodeFromBase58String, err := crypt.UncompressPubKey(base58String)
+	decodeFromBase58String, err := UncompressPubKey(base58String)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -68,8 +67,8 @@ func TestUncompressPublicKey(t *testing.T) {
 }
 
 func TestGenerateKeys(t *testing.T) {
-	privateKey, _ := crypt.GenerateKeys()
-	privateKeyString := crypt.ConvertPrivKeyToString(privateKey)
+	privateKey, _ := GenerateKeys()
+	privateKeyString := ConvertPrivKeyToString(privateKey)
 	if len(privateKeyString) != 64 {
 		t.Errorf("TestGenerateKeys private key length was incorrect, got: %d, want: 64", len(privateKeyString))
 	}
@@ -84,21 +83,21 @@ func TestReturnPublicKey(t *testing.T) {
 
 	privKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), pkBytes)
 
-	pubKey := crypt.ReturnPublicKey(privKey)
-	publicKeyString := crypt.ConvertPubKeyToString(pubKey)
+	pubKey := ReturnPublicKey(privKey)
+	publicKeyString := ConvertPubKeyToString(pubKey)
 	if len(publicKeyString) != 66 {
 		t.Errorf("TestGenerateKeys private key length was incorrect, got: %d, want: 66", len(publicKeyString))
 	}
 }
 
 func TestSignMessage(t *testing.T) {
-	privKey, _ := crypt.GenerateKeys()
-	pubKey := crypt.ReturnPublicKey(privKey)
+	privKey, _ := GenerateKeys()
+	pubKey := ReturnPublicKey(privKey)
 	msg := "this is it"
-	signature, messageHash := crypt.SignMessage(msg, privKey)
+	signature, messageHash := SignMessage(msg, privKey)
 
 	//verified := signature.Verify(messageHash, pubKey)
-	verified := crypt.VerifyMessage(messageHash, pubKey, signature)
+	verified := VerifyMessage(messageHash, pubKey, signature)
 	fmt.Printf("Signature Verified? %v\n", verified)
 	if verified != true {
 		t.Errorf("TestSignMessage verified value was false")
