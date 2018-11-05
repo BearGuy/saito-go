@@ -1,180 +1,287 @@
 package saito
 
 import (
+	"bytes"
 	"fmt"
+	"time"
 )
 
 // Index contains block metadata stored by the blockchain struct
 type Index struct {
-	hash [][]byte
-	// 	prevhash:    [],                 // hash of previous block
-	prevHash [][]byte
-	// 	block_id:    [],                 // block id
-	blockID []int64
-	// 	mintid:      [],                 // min tid
-	minTXID []int64
-	// 	maxtid:      [],                 // max tid
-	maxTXID []int64
-	// 	ts:          [],                 // timestamps
-	timestamps []int64
-	// 	lc:          [],                 // is longest chain (0 = no, 1 = yes)
-	longestChain []bool
+	bid          []int64
+	hash         [][]byte
+	prevhash     [][]byte
+	blockID      []int64
+	minTXID      []int64
+	maxTXID      []int64
+	timestamps   []int64
+	longestChain []int
+	burnfee      []float64
 }
 
 // Blockchain is the heart of saito
 type Blockchain struct {
-	//this.heartbeat               = 30;        // expect new block every 30 seconds
-	heartbeat int64
-
-	//this.max_heartbeat           = 120;       // burn fee hits zero every 120 seconds
-	maxHeartbeat int64
-
-	//this.genesis_period          = 12160;     // number of blocks before money disappears
-	genesisPeriod int64
-	// 90,000 is roughly a 30 day transient blockchain.
-	//this.genesis_ts              = 0;         // unixtime of earliest block
-	genesisTS int64
-
-	//this.genesis_block_id        = 0;         // earliest block_id we care about
-	genesisBlockID int64
-
-	//this.fork_guard            = 120;       // discard forks that fall N blocks behind, this can
-	forkGuard int64
-	// result in a chain fork, so this needs to be long
-	// enough that we reasonably decide that nodes that
-	// cannot keep up-to-date with the network must resync
-	//
-	// the fork guard is used primarily when identifying
-	// what blocks we can delete, since we must have the
-	// full genesis period, plus whatever fork guard limit
-	// suggests that someone can re-write the genesis chain
-	//
-	//this.fork_id                 = "";        // a string we use to identify our longest-chain
-	forkID int64
-	// generated deterministically from the block hashes
-	// and thus unique for every fork
-	//
-	//this.fork_id_mod             = 10;	    // update fork id every 10 blocks
-	forIDMod int64
-
-	//this.old_lc                  = -1;	    // old longest-chain when processing new block
-	oldLC int64
-	// this will be set to the position of the current
-	// head of the longest chain in our indexes before
-	// we try to validate the newest block, so that we
-	// can gracefully reset to the known-good block if
-	// there are problems
-
-	/////////////
-	// Indexes //
-	/////////////
-	//
-	// These hold the most important data needed to interact
-	// with the blockchain objects, and must be kept for the
-	// entire period the block is part of the transient
-	// blockchain.
-	//
-	// If we add or delete these items, we must make changes
-	// to the following functions
-	//
-	//    addBlockToBlockchain (add)
-	//    addBlockToBlockchainPartTwo (lc_hashmap only)
-	//    purgeArchivedData (delete)
-	//
-	// this.index = {
-	// 	hash:        [],                 // hashes
-	// 	prevhash:    [],                 // hash of previous block
-	// 	block_id:    [],                 // block id
-	// 	mintid:      [],                 // min tid
-	// 	maxtid:      [],                 // max tid
-	// 	ts:          [],                 // timestamps
-	// 	lc:          [],                 // is longest chain (0 = no, 1 = yes)
-	// 	burnfee:     [],                 // burnfee per block
-	// 	feestep:     []                  // feestep per block
-	// };
-	//this.blocks         = [];
-	index         Index
-	blocks        []Block
-	block_hashmap [][]byte
-	LCHashmap     []int64
-	longestChain  int64
-
-	// 	burnfee:     [],                 // burnfee per block
-	// burnfee float64
-	// 	feestep:     []                  // feestep per block
-	// feestep float64
-
-	//this.block_hashmap  = [];
-	// this.lc_hashmap     = []; 	     // hashmap index is the  block hash and contains
-	// 					// 1 or 0 depending on if they are the longest
-	// 					// chain or not.
-	// this.longestChain   = -1;          // position of longest chain in indices
-
-	///////////////////
-	// monitor state //
-	///////////////////
-	// this.currently_reclaiming = 0;
-	currentlyReclaiming bool
-
-	//this.currently_indexing = 0;
-	currentlyIndexing bool
-
-	//this.block_saving_timer = null;
-	blockSavingTimer int64
-
-	//this.block_saving_timer_speed = 10;
-	blockSavingTimerSpeed int64
-
-	//
-	// this are set to the earliest block that we process
-	// to ensure that we don't load missing blocks endlessly
-	// into the past.
-	//
-	// the blk_limit is checked in the storage class when
-	// validating slips as part of its sanity check so that
-	// it does not cry foul if it lacks a full genesis period
-	// worth of blocks but cannot validate slips.
-	//
-	//this.ts_limit = -1;
-	tsLimit int64
-
-	//this.blk_limit = -1;
-	blockLimit int64
-
-	///////////////
-	// Callbacks //
-	///////////////
-	//this.callback_limit   = 100;        // only run callbacks on the last X blocks
-	// this should be at least 10 to be safe, as
-	// we delete data from blks past this limit
-	// and that can complicate syncing to lite-clients
-
-	// if we send full blocks right away
-	//this.run_callbacks 	  = 1;	     // 0 for central nodes focused on scaling
-
-	//
-	// these are used to tell the blockchain class from
-	// what block it should start syncing. we load these
-	// from our options file on initialize.
-	//
-	//this.previous_block_id = -1;
-	//this.previous_ts_limit = -1;
-	//this.previous_block_hash = "";
+	heartbeat                 int64
+	maxHeartbeat              int64
+	genesisPeriod             int64
+	genesisTS                 int64
+	genesisBlockID            int64
+	forkGuard                 int64
+	forkID                    int64
+	forIDMod                  int64
+	oldLC                     int64
+	index                     Index
+	blocks                    []Block
+	blockHashmap              map[string]int64
+	lastHash                  []byte
+	lastBid                   int64
+	LCHashmap                 []int64
+	longestChain              int
+	LowestAcceptableTimestamp int64
+	LowestAcceptableBlockId   int64
+	LowestAcceptableHash      []byte
 }
 
 func NewBlockchain() Blockchain {
 	bchain := Blockchain{}
 	bchain.index = Index{}
 	bchain.genesisPeriod = 12160
+	bchain.blockHashmap = make(map[string]int64)
 	return bchain
 }
 
 func (bchain *Blockchain) AddBlock(blk Block) {
+	// verify that it's a valid block before appending
+	bid := blk.id
+	ts := blk.unixtime
+	hash := blk.merkle
+	prevhash := blk.prevhash
+
+	// ignore pre-genesis blocks
+
+	if ts < bchain.genesisTS || bid < bchain.genesisBlockID {
+		// cannot add this block
+		return
+	}
+
+	if bchain.IsHashIndexed(hash) {
+		// block is already included in the chain
+		return
+	}
+
+	// if the previous block hash was not indexed, we want to fetch it
+	// if ts < bchain.LowestAcceptableTimestamp {
+	// }
+
+	// insert indexes
+	pos := binaryInsert(bchain.index.timestamps, ts)
+	if pos <= bchain.longestChain && len(bchain.index.longestChain) > 1 {
+		bchain.longestChain++
+	}
+
+	index_len := len(bchain.index.hash)
+	bchain.index.hash = append(bchain.index.hash[0:pos], hash)
+	bchain.index.hash = append(bchain.index.hash, bchain.index.hash[pos+1:index_len-1]...)
+
+	bchain.index.prevhash = append(bchain.index.prevhash[0:pos], prevhash)
+	bchain.index.prevhash = append(bchain.index.prevhash, bchain.index.prevhash[pos+1:index_len-1]...)
+
+	bchain.index.bid = append(bchain.index.bid[0:pos], bid)
+	bchain.index.bid = append(bchain.index.bid, bchain.index.bid[pos+1:index_len-1]...)
+
+	// bchain.index.maxTXID = append(bchain.index.maxTXID[0:pos], maxTXID)
+	// bchain.index.maxTXID = append(bchain.index.maxTXID, bchain.index.maxTXID[pos+1:index_len-1]...)
+
+	// bchain.index.minTXID = append(bchain.index.minTXID[0:pos], minTXID)
+	// bchain.index.minTXID = append(bchain.index.minTXID, bchain.index.minTXID[pos+1:index_len-1]...)
+
+	bchain.index.hash = append(bchain.index.hash[0:pos], hash)
+	bchain.index.hash = append(bchain.index.hash, bchain.index.hash[pos+1:index_len-1]...)
+
+	//   bchain.index.prevhash.splice(pos, 0, prevhash);
+	//   bchain.index.bid.splice(pos, 0, bid);
+	//   bchain.index.maxtid.splice(pos, 0, newblock.returnMaxTxId());
+	//   bchain.index.mintid.splice(pos, 0, newblock.returnMinTxId());
+	//   bchain.index.lc.splice(pos, 0, 0);
+	//   bchain.index.bf.splice(pos, 0, newblock.returnBurnFeeValue());
+	//   bchain.blocks.splice(pos, 0, newblock);
+
+	hash_string := string(hash)
+	bchain.blockHashmap[hash_string] = bid
+
+	blk.isValid = true
+	blk.prevhash = prevhash
+	bchain.blocks = append(bchain.blocks, blk)
+
+	// identify longest chain
+	IAmTheLongestChain := false
+	if bchain.longestChain == 0 && len(bchain.blocks) == 1 {
+		if bchain.lastBid > 0 {
+			if bytes.Equal(prevhash, bchain.lastHash) {
+				IAmTheLongestChain = true
+			}
+		} else {
+			bchain.index.longestChain[pos] = 1
+			IAmTheLongestChain = true
+		}
+
+	}
+
+	if bid >= bchain.index.bid[bchain.longestChain] {
+		var search_pos int
+		var search_bf float64
+		var search_ts int64
+		var search_hash []byte
+		var search_prevhash []byte
+		var sharedAncestorPos int
+
+		if bytes.Equal(prevhash, bchain.index.hash[bchain.longestChain]) {
+			IAmTheLongestChain = true
+		} else {
+			lchain_pos := bchain.longestChain
+			nchain_pos := pos
+
+			lchain_len := 0
+			nchain_len := 0
+
+			lchain_bf := bchain.index.burnfee[lchain_pos]
+			nchain_bf := bchain.index.burnfee[nchain_pos]
+
+			lchain_ts := bchain.index.timestamps[lchain_pos]
+			nchain_ts := bchain.index.timestamps[nchain_pos]
+
+			lchain_prevhash := bchain.index.prevhash[lchain_pos]
+			nchain_prevhash := bchain.index.prevhash[nchain_pos]
+
+			if nchain_ts >= lchain_ts {
+				search_pos = nchain_pos - 1
+			} else {
+				search_pos = lchain_pos - 1
+			}
+			//
+			// find the last shared ancestor
+			//
+			for search_pos >= 0 {
+				search_ts = bchain.index.timestamps[search_pos]
+				search_bf = bchain.index.burnfee[search_pos]
+				search_hash = bchain.index.hash[search_pos]
+				search_prevhash = bchain.index.prevhash[search_pos]
+
+				if bytes.Equal(search_hash, lchain_prevhash) && bytes.Equal(search_hash, nchain_prevhash) {
+					shared_ancestor_pos := search_pos
+					search_pos = -1
+				} else {
+					if bytes.Equal(search_hash, lchain_prevhash) {
+						lchain_len++
+						lchain_prevhash := bchain.index.prevhash[search_pos]
+						lchain_bf := lchain_bf + bchain.index.burnfee[search_pos]
+					}
+
+					if bytes.Equal(search_hash, nchain_prevhash) {
+						nchain_prevhash = bchain.index.prevhash[search_pos]
+						nchain_len++
+						nchain_bf = nchain_bf + bchain.index.burnfee[search_pos]
+					}
+
+					sharedAncestorPos = search_pos
+					search_pos--
+				}
+			}
+
+			if nchain_len > lchain_len && nchain_bf >= lchain_bf {
+				IAmTheLongestChain = true
+			} else {
+				// to prevent our system from being gamed, we
+				// require the attacking chain to have equivalent
+				// or greater aggreaget burn fee. Thsi ensures that
+				// an attacker cannot lower difficulty, pump out a
+				// ton of blocks, and then hike the difficulty only
+				// at the last moment to claim the longest chain.
+
+				// this is like the option above, except that we
+				// have a choice of which blocl to support.
+				if nchain_len == nchain_len && nchain_bf >= lchain_bf {
+					//vote.prefersBlock(newBlock, this.returnLatestBlock())
+					IAmTheLongestChain = true
+				}
+			}
+		}
+	} else {
+		if bytes.Equal(blk.prevhash, bchain.lastHash) && bytes.Equal(blk.prevhash, nil) {
+			// for { }
+			// bchain.index.lc[] = true
+			// storage.onChainReorganization
+			// wallet.onChainReorganization
+			// modules.onChainReorganization
+			IAmTheLongestChain = true
+			bchain.lastHash = hash
+			bchain.longestChain = pos
+			// modules.updateBalance
+			bchain.LowestAcceptableTimestamp = ts
+			bchain.LowestAcceptableBlockId = bid
+			bchain.LowestAcceptableHash = hash
+
+			// storage.saveOptions()
+		}
+	}
+
+	if IAmTheLongestChain && len(bchain.index.hash) > 1 {
+		bchain.longestChain = pos
+		bchain.index.longestChain[pos] = 1
+		bchain.blockHashmap[string(hash)] = blk.id
+
+		// this.app.miner.stopMining()
+
+		// edge case
+		LCAtThisBid := false
+		locOfLastBlock := -1
+
+		if bchain.LowestAcceptableBlockId == (blk.id - 1) {
+			if bytes.Equal(bchain.LowestAcceptableHash, blk.prevhash) {
+				for h := pos - 1; h >= 0; h-- {
+					if bytes.Equal(bchain.index.hash[h], blk.prevhash) {
+						locOfLastBlock = h
+					}
+					if bchain.index.longestChain[h] == 1 && bchain.index.bid[h] == blk.id-1 {
+						LCAtThisBid = false
+					}
+					if !LCAtThisBid && locOfLastBlock != -1 {
+						if bchain.index.longestChain[locOfLastBlock] == 0 {
+							bchain.index.longestChain[locOfLastBlock] = 1
+							// storage.onChainReorganization()
+							// wallet.onChainReorganization()
+							// modules.onChainReorganization()
+						}
+					}
+				}
+			}
+		}
+		sharedAncestorHash := bchain.index.hash[sharedAncestorPos]
+		newHashToHuntFor := blk.returnHash()
+		var newBlockHashes [][]byte
+		var newBlocksIdxs []int64
+		var newBlockIds []int64
+		var oldHashToHuntFor []byte
+		var oldBlockHashes [][]byte
+		var oldBlockIdxs []int64
+		var oldBlockIds []int64
+		var rewriteFromStart bool
+
+		if sharedAncestorPos == -1 && bchain.index.longestChain[0] == 0 {
+			// for g := pos - 1
+			if rewriteFromStart && len(bchain.blocks) > 0 {
+			}
+		}
+
+		if bytes.Equal(blk.prevhash, oldHashToHuntFor) {
+			newBlockHashes.push(bchain.index.hash[pos])
+		}
+
+	} else {
+		fmt.Println(" .... into wind:    ", time.Now().Unix())
+	}
 	fmt.Println("---- Added Block To Blockchain! ----")
 	fmt.Println(blk)
-	// verify that it's a valid block before appending
-	blk.isValid = true
-	bchain.blocks = append(bchain.blocks, blk)
 }
 
 func (bchain *Blockchain) ReturnLastBlock() Block {
@@ -182,4 +289,41 @@ func (bchain *Blockchain) ReturnLastBlock() Block {
 		return bchain.blocks[len(bchain.blocks)-1]
 	}
 	return Block{}
+}
+
+func (bchain *Blockchain) IsHashIndexed(hash []byte) bool {
+	for _, v := range bchain.index.hash {
+		if bytes.Equal(hash, v) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func binaryInsert(list []int64, item int64) int {
+	start := 0
+	end := len(list)
+
+	for start < end {
+
+		pos := (start + end) >> 1
+		cmp := item - list[pos]
+
+		if cmp == 0 {
+			start = pos
+			end = pos
+			break
+		} else if cmp < 0 {
+			end = pos
+		} else {
+			start = pos + 1
+		}
+	}
+
+	// if !search {
+	// 	list.splice(start, 0, item)
+	// }
+
+	return start
 }

@@ -6,19 +6,6 @@ import (
 	"github.com/cbergoon/merkletree"
 )
 
-// this.size			 = 0;  // size in bytes
-// this.dmsg             	 = ""; // decrypted msg
-// this.cfee                      = ""; // fee for block creator
-// this.ufee                      = ""; // usable fee
-// this.fee                       = ""; // total fee
-// this.is_valid			 = 1;  // is valid tx
-// this.trapdoor                  = "00000000000000000000000000000000000000000000";
-
-// /////////
-// // atr //
-// /////////
-// this.atr_rebroadcast_floor     = 10;
-
 // Transaction struct
 type Transaction struct {
 	transaction TxData
