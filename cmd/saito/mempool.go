@@ -29,7 +29,7 @@ func (m *Mempool) Bundle(prevblock Block) Block {
 	for {
 		if m.BundlingFeesNeeded <= 0 {
 			fmt.Println("YOU CAN PRODUCE A BLOCK!")
-			return m.produceBlock(&prevblock)
+			return m.bundleBlock(&prevblock)
 			// os.Exit(3)
 		} else {
 			m.BundlingFeesNeeded = m.BurnFee - m.Heartbeat*float64(time.Now().Unix()-m.Starttime)
@@ -48,12 +48,12 @@ func DisplayBurnFeeCountdown(bundling_fees float64) {
 		t.Hour(), t.Minute(), t.Second(), bundling_fees)
 }
 
-func (m *Mempool) produceBlock(lastBlock *Block) Block {
+func (m *Mempool) bundleBlock(lastBlock *Block) Block {
 	blk := NewBlock()
-	if lastBlock != nil {
-		blk.id = lastBlock.id + 1
-		blk.prevhash = lastBlock.merkle
+	blk.id = lastBlock.id + 1
 
+	if lastBlock.id != 0 {
+		blk.prevhash = lastBlock.ReturnHash()
 	}
 
 	blk.merkle = ReturnMerkleTreeRoot(blk.transactions)

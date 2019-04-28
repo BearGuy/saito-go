@@ -25,10 +25,11 @@ func FromBase58(s string) string {
 }
 
 // DoubleHashB implements sha256 hashing twice as per bitcoin's standard
-func DoubleHashB(b []byte) string {
+func DoubleHashB(b []byte) []byte {
 	first := sha256.Sum256(b)
 	second := sha256.Sum256(first[:])
-	return hex.EncodeToString(second[:])
+	//return hex.EncodeToString(second[:])
+	return second[:]
 }
 
 // CompressPubKey compresses a public key to a 33 byte byte array

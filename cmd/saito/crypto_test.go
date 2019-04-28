@@ -28,7 +28,7 @@ func TestFromBase58(t *testing.T) {
 
 func TestDoubleHashB(t *testing.T) {
 	message := "this is a test message"
-	messageHash := DoubleHashB([]byte(message))
+	messageHash := hex.EncodeToString(DoubleHashB([]byte(message)))
 	correctMessageHash := "a949c222c34b9a59b35214d5a926c406f21b0be5b8311f8dcdbf09dd7b84c242"
 	if messageHash != correctMessageHash {
 		t.Errorf("DoubleHashB was incorrect, got: %s, want: %s.", messageHash, correctMessageHash)

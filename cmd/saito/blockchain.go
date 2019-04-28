@@ -54,9 +54,10 @@ func (bchain *Blockchain) AddBlock(blk Block) {
 	// verify that it's a valid block before appending
 	bid := blk.id
 	ts := blk.unixtime
-	hash := blk.merkle
+	hash := blk.ReturnHash()
 	prevhash := blk.prevhash
 
+	var sharedAncestorPos int
 	// ignore pre-genesis blocks
 
 	if ts < bchain.genesisTS || bid < bchain.genesisBlockID {
@@ -81,22 +82,23 @@ func (bchain *Blockchain) AddBlock(blk Block) {
 
 	index_len := len(bchain.index.hash)
 	bchain.index.hash = append(bchain.index.hash[0:pos], hash)
-	bchain.index.hash = append(bchain.index.hash, bchain.index.hash[pos+1:index_len-1]...)
-
 	bchain.index.prevhash = append(bchain.index.prevhash[0:pos], prevhash)
-	bchain.index.prevhash = append(bchain.index.prevhash, bchain.index.prevhash[pos+1:index_len-1]...)
-
 	bchain.index.bid = append(bchain.index.bid[0:pos], bid)
-	bchain.index.bid = append(bchain.index.bid, bchain.index.bid[pos+1:index_len-1]...)
+	bchain.index.timestamps = append(bchain.index.timestamps[0:pos], ts)
+	bchain.index.longestChain = append(bchain.index.longestChain[0:pos], 0)
+
+	if pos < index_len {
+		bchain.index.hash = append(bchain.index.hash, bchain.index.hash[pos+1:index_len-1]...)
+		bchain.index.prevhash = append(bchain.index.prevhash, bchain.index.prevhash[pos+1:index_len-1]...)
+		bchain.index.bid = append(bchain.index.bid, bchain.index.bid[pos+1:index_len-1]...)
+		bchain.index.hash = append(bchain.index.hash, bchain.index.hash[pos+1:index_len-1]...)
+	}
 
 	// bchain.index.maxTXID = append(bchain.index.maxTXID[0:pos], maxTXID)
 	// bchain.index.maxTXID = append(bchain.index.maxTXID, bchain.index.maxTXID[pos+1:index_len-1]...)
 
 	// bchain.index.minTXID = append(bchain.index.minTXID[0:pos], minTXID)
 	// bchain.index.minTXID = append(bchain.index.minTXID, bchain.index.minTXID[pos+1:index_len-1]...)
-
-	bchain.index.hash = append(bchain.index.hash[0:pos], hash)
-	bchain.index.hash = append(bchain.index.hash, bchain.index.hash[pos+1:index_len-1]...)
 
 	//   bchain.index.prevhash.splice(pos, 0, prevhash);
 	//   bchain.index.bid.splice(pos, 0, bid);
@@ -127,13 +129,13 @@ func (bchain *Blockchain) AddBlock(blk Block) {
 
 	}
 
-	if bid >= bchain.index.bid[bchain.longestChain] {
+	// could be wrong
+	if bid > bchain.index.bid[bchain.longestChain] {
 		var search_pos int
-		var search_bf float64
-		var search_ts int64
+		//var search_bf float64
+		//var search_ts int64
 		var search_hash []byte
-		var search_prevhash []byte
-		var sharedAncestorPos int
+		//var search_prevhash []byte
 
 		if bytes.Equal(prevhash, bchain.index.hash[bchain.longestChain]) {
 			IAmTheLongestChain = true
@@ -162,19 +164,19 @@ func (bchain *Blockchain) AddBlock(blk Block) {
 			// find the last shared ancestor
 			//
 			for search_pos >= 0 {
-				search_ts = bchain.index.timestamps[search_pos]
-				search_bf = bchain.index.burnfee[search_pos]
+				//search_ts := bchain.index.timestamps[search_pos]
+				//search_bf := bchain.index.burnfee[search_pos]
 				search_hash = bchain.index.hash[search_pos]
-				search_prevhash = bchain.index.prevhash[search_pos]
+				//search_prevhash := bchain.index.prevhash[search_pos]
 
 				if bytes.Equal(search_hash, lchain_prevhash) && bytes.Equal(search_hash, nchain_prevhash) {
-					shared_ancestor_pos := search_pos
+					sharedAncestorPos = search_pos
 					search_pos = -1
 				} else {
 					if bytes.Equal(search_hash, lchain_prevhash) {
 						lchain_len++
-						lchain_prevhash := bchain.index.prevhash[search_pos]
-						lchain_bf := lchain_bf + bchain.index.burnfee[search_pos]
+						lchain_prevhash = bchain.index.prevhash[search_pos]
+						lchain_bf = lchain_bf + bchain.index.burnfee[search_pos]
 					}
 
 					if bytes.Equal(search_hash, nchain_prevhash) {
@@ -256,10 +258,10 @@ func (bchain *Blockchain) AddBlock(blk Block) {
 				}
 			}
 		}
-		sharedAncestorHash := bchain.index.hash[sharedAncestorPos]
-		newHashToHuntFor := blk.returnHash()
+		//sharedAncestorHash := bchain.index.hash[sharedAncestorPos]
+		newHashToHuntFor := blk.merkle
 		var newBlockHashes [][]byte
-		var newBlocksIdxs []int64
+		var newBlockIdxs []int64
 		var newBlockIds []int64
 		var oldHashToHuntFor []byte
 		var oldBlockHashes [][]byte
@@ -274,11 +276,38 @@ func (bchain *Blockchain) AddBlock(blk Block) {
 		}
 
 		if bytes.Equal(blk.prevhash, oldHashToHuntFor) {
-			newBlockHashes.push(bchain.index.hash[pos])
-		}
+			newBlockHashes = append(newBlockHashes, bchain.index.hash[pos])
+			newBlockIdxs = append(newBlockIdxs, int64(pos))
+			newBlockIds = append(newBlockIds, bchain.index.bid[pos])
+		} else {
+			for i := len(bchain.index.hash) - 1; i > sharedAncestorPos; i-- {
+				if bytes.Equal(bchain.index.hash[i], oldHashToHuntFor) {
+					oldHashToHuntFor = bchain.index.prevhash[i]
+					oldBlockHashes = append(oldBlockHashes)
+					oldBlockIdxs = append(oldBlockIdxs, int64(i))
+					oldBlockIds = append(oldBlockIds, bchain.index.bid[i])
+				}
+			}
+			oldBlockHashes = reverseHashes(oldBlockHashes)
+			oldBlockIdxs = reverseIdxs(oldBlockIdxs)
 
-	} else {
+			for j := len(bchain.index.hash) - 1; j > sharedAncestorPos; j-- {
+				if bytes.Equal(bchain.index.hash[j], newHashToHuntFor) {
+					newHashToHuntFor = bchain.index.prevhash[j]
+					newBlockHashes = append(newBlockHashes, bchain.index.hash[j])
+					newBlockIdxs = append(newBlockIdxs, int64(j))
+					newBlockIds = append(newBlockIds, bchain.index.bid[j])
+				}
+			}
+			newBlockHashes = reverseHashes(newBlockHashes)
+			newBlockIdxs = reverseIdxs(newBlockIdxs)
+		}
 		fmt.Println(" .... into wind:    ", time.Now().Unix())
+		// bchain.validateLongestChain(blk, pos, shared_ancestor_pos, newblock_idxs, new_block_hashes, new_block_ids, old_block_idxs, old_block_hashes, old_block_idxs, i_am_the_longest_chain, force);
+		// return
+	} else {
+		fmt.Println(" ..... int succ:   ", time.Now().Unix())
+		// addBlockToBlockchainSuccess()
 	}
 	fmt.Println("---- Added Block To Blockchain! ----")
 	fmt.Println(blk)
@@ -326,4 +355,18 @@ func binaryInsert(list []int64, item int64) int {
 	// }
 
 	return start
+}
+
+func reverseHashes(list [][]byte) [][]byte {
+	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
+		list[i], list[j] = list[j], list[i]
+	}
+	return list
+}
+
+func reverseIdxs(list []int64) []int64 {
+	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
+		list[i], list[j] = list[j], list[i]
+	}
+	return list
 }
