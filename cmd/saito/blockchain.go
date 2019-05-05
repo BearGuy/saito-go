@@ -42,15 +42,15 @@ type Blockchain struct {
 	LowestAcceptableHash      []byte
 }
 
-func NewBlockchain() Blockchain {
+func NewBlockchain() *Blockchain {
 	bchain := Blockchain{}
 	bchain.index = Index{}
 	bchain.genesisPeriod = 12160
 	bchain.blockHashmap = make(map[string]int64)
-	return bchain
+	return &bchain
 }
 
-func (bchain *Blockchain) AddBlock(blk Block) {
+func (bchain *Blockchain) AddBlock(blk *Block) {
 	// verify that it's a valid block before appending
 	bid := blk.id
 	ts := blk.unixtime
@@ -113,7 +113,7 @@ func (bchain *Blockchain) AddBlock(blk Block) {
 
 	blk.isValid = true
 	blk.prevhash = prevhash
-	bchain.blocks = append(bchain.blocks, blk)
+	bchain.blocks = append(bchain.blocks, *blk)
 
 	// identify longest chain
 	IAmTheLongestChain := false
@@ -313,11 +313,11 @@ func (bchain *Blockchain) AddBlock(blk Block) {
 	fmt.Println(blk)
 }
 
-func (bchain *Blockchain) ReturnLastBlock() Block {
+func (bchain *Blockchain) ReturnLastBlock() *Block {
 	if len(bchain.blocks) != 0 {
-		return bchain.blocks[len(bchain.blocks)-1]
+		return &bchain.blocks[len(bchain.blocks)-1]
 	}
-	return Block{}
+	return &Block{}
 }
 
 func (bchain *Blockchain) IsHashIndexed(hash []byte) bool {

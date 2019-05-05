@@ -5,11 +5,14 @@ import (
 	"encoding/binary"
 	"math"
 	"time"
+
+	"github.com/btcsuite/btcd/btcec"
 )
 
 // Block struct, the building block *snerk* of Saito
 type Block struct {
 	id           int64
+	creator      *btcec.PublicKey
 	unixtime     int64
 	hash         []byte
 	prevhash     []byte
@@ -22,13 +25,13 @@ type Block struct {
 }
 
 // NewBlock is a constructor for creaing new blocks
-func NewBlock() Block {
+func NewBlock() *Block {
 	block := Block{}
 	block.id = 1
 	block.unixtime = time.Now().Unix()
 	block.transactions = nil
 	block.lc = 0
-	return block
+	return &block
 }
 
 func (b *Block) ReturnHash() []byte {
@@ -43,8 +46,10 @@ func (b *Block) ReturnHash() []byte {
 }
 
 func (b *Block) ReturnSignatureSource() []byte {
+	// need to add creator
 	s := [][]byte{
 		int64ToByte(b.unixtime),
+		b.creator.SerializeCompressed(),
 		b.merkle,
 		int64ToByte(b.id),
 		float64ToByte(b.burnFee),
@@ -63,6 +68,10 @@ func (b *Block) ReturnSignatureSource() []byte {
 	//   + this.block.coinbase
 	//   + this.block.vote
 	//   + this.block.reclaimed;
+}
+
+func (b *Block) AddCreator(publickey *btcec.PublicKey) {
+	b.creator = publickey
 }
 
 func float64ToByte(f float64) []byte {

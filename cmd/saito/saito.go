@@ -1,13 +1,15 @@
 package saito
 
 type Saito struct {
-	Mempool    Mempool
-	Blockchain Blockchain
+	Mempool    *Mempool
+	Blockchain *Blockchain
+	Wallet     *Wallet
 }
 
 func InitSaito() *Saito {
-	s := &Saito{}
+	s := Saito{}
 	s.Mempool = NewMempool()
 	s.Blockchain = NewBlockchain()
-	return s
+	s.Wallet = NewWallet()
+	return &s
 }

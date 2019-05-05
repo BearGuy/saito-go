@@ -10,6 +10,7 @@ func main() {
 	saito := saito.InitSaito()
 	for {
 		newblock := saito.Mempool.Bundle(saito.Blockchain.ReturnLastBlock())
+		newblock.AddCreator(saito.Wallet.ReturnPublicKey())
 		saito.Blockchain.AddBlock(newblock)
 
 		saito.Mempool.BurnFee = 2

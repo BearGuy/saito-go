@@ -15,21 +15,21 @@ type Mempool struct {
 	Starttime          int64
 }
 
-func NewMempool() Mempool {
+func NewMempool() *Mempool {
 	var mempool = Mempool{}
 	mempool.BundlingFeesNeeded = 2
 	mempool.BurnFee = 2
 	mempool.Heartbeat = 0.06666666666
 	mempool.FeesAcquired = 0
 	mempool.Starttime = time.Now().Unix()
-	return mempool
+	return &mempool
 }
 
-func (m *Mempool) Bundle(prevblock Block) Block {
+func (m *Mempool) Bundle(prevblock *Block) *Block {
 	for {
 		if m.BundlingFeesNeeded <= 0 {
 			fmt.Println("YOU CAN PRODUCE A BLOCK!")
-			return m.bundleBlock(&prevblock)
+			return m.BundleBlock(prevblock)
 			// os.Exit(3)
 		} else {
 			m.BundlingFeesNeeded = m.BurnFee - m.Heartbeat*float64(time.Now().Unix()-m.Starttime)
@@ -48,9 +48,11 @@ func DisplayBurnFeeCountdown(bundling_fees float64) {
 		t.Hour(), t.Minute(), t.Second(), bundling_fees)
 }
 
-func (m *Mempool) bundleBlock(lastBlock *Block) Block {
+func (m *Mempool) BundleBlock(lastBlock *Block) *Block {
 	blk := NewBlock()
 	blk.id = lastBlock.id + 1
+
+	// blk.creator = wallet.publickey
 
 	if lastBlock.id != 0 {
 		blk.prevhash = lastBlock.ReturnHash()
