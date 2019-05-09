@@ -3,12 +3,13 @@ package saito
 import (
 	"crypto/sha256"
 
+	"github.com/btcsuite/btcd/btcec"
 	"github.com/cbergoon/merkletree"
 )
 
 // Transaction struct
 type Transaction struct {
-	transaction TxData
+	transaction *TxData
 	size        uint64
 	dmsg        string
 	cfee        string
@@ -29,14 +30,19 @@ type TxData struct {
 	path []TxData
 	gt   int
 	ft   int
-	msg  string
+	msg  []byte
 	msig string
+	typ  int
 	ps   int
 	rb   int
 }
 
+func NewTransaction() *Transaction {
+	return &Transaction{transaction: &TxData{}}
+}
+
 // AddFrom adds Slips to the current transaction
-func (tx *Transaction) AddFrom(fromAddress []byte, fromAmount float64) {
+func (tx *Transaction) AddFrom(fromAddress btcec.PublicKey, fromAmount float64) {
 	slip := Slip{}
 	slip.add = fromAddress
 	slip.amt = fromAmount
@@ -44,7 +50,7 @@ func (tx *Transaction) AddFrom(fromAddress []byte, fromAmount float64) {
 }
 
 // AddTo adds Slips to the current transaction
-func (tx *Transaction) AddTo(toAddress []byte, toAmount float64) {
+func (tx *Transaction) AddTo(toAddress btcec.PublicKey, toAmount float64) {
 	slip := Slip{}
 	slip.add = toAddress
 	slip.amt = toAmount

@@ -217,7 +217,7 @@ func BuildMerkleTree(input []Transaction) *merkletree.MerkleTree {
 			list = append(list, content)
 		}
 	} else {
-		list = append(list, Transaction{transaction: TxData{ts: time.Now().Unix()}})
+		list = append(list, Transaction{transaction: &TxData{ts: time.Now().Unix()}})
 	}
 	// need to provide some content, even if empty string
 	t, _ := merkletree.NewTree(list)

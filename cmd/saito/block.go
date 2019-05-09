@@ -19,6 +19,7 @@ type Block struct {
 	prehash      []byte
 	merkle       []byte
 	burnFee      float64
+	difficulty   float64
 	transactions []Transaction
 	isValid      bool
 	lc           int64
@@ -32,6 +33,10 @@ func NewBlock() *Block {
 	block.transactions = nil
 	block.lc = 0
 	return &block
+}
+
+func (b *Block) ReturnDifficulty() float64 {
+	return b.difficulty
 }
 
 func (b *Block) ReturnHash() []byte {
@@ -53,6 +58,7 @@ func (b *Block) ReturnSignatureSource() []byte {
 		b.merkle,
 		int64ToByte(b.id),
 		float64ToByte(b.burnFee),
+		float64ToByte(b.difficulty),
 		b.hash,
 	}
 	return bytes.Join(s, []byte(", "))
